@@ -1,0 +1,22 @@
+---
+- name: Creating user and group for ivanov.i (sudo)
+  hosts: servername1
+  become: true
+  vars:
+    use_sudo: true
+    user_name: ivanov.i
+    ssh_pub_key: "ssh-rsa AAAAB3*** user@vladeiy-honor"
+  tasks:
+    - import_tasks: add-user.yml
+
+- name: Creating user petrov.p (sudo)
+  hosts: servername1,servername2
+  become: true
+  vars:
+    use_sudo: true
+    user_name: petrov.p
+    ssh_pub_key: |
+      ssh-rsa AAAAB32***
+      ssh-rsa AAAAB3N*** Petrov@MBP-7
+  tasks:
+    - import_tasks: add-user.yml

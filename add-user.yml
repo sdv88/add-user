@@ -1,0 +1,48 @@
+---
+- name: "For {{ user_name }}: Create groups"
+  group:
+    name: "{{ user_name }}"
+    state: present
+- name: "For {{ user_name }}: Create users"
+  user:
+    name: "{{ user_name }}"
+    group: "{{ user_name }}"
+    shell: "{{ user_shell | default('/bin/bash') }}"
+    groups: "{{ item }}"
+  with_items: "{{ groups_users | default(omit) }}"
+- name: "For {{ user_name }}: Check existing folder"
+  file:
+    path: "/home/{{ user_name }}/.ssh/"
+    state: directory
+    mode: 0700
+    owner: "{{ user_name }}"
+- name: "For {{ user_name }}: Adding SSH key"
+  copy:
+    dest: "/home/{{ user_name }}/.ssh/authorized_keys"
+    content: "{{ ssh_pub_key }}"
+    mode: 0600
+    owner: "{{ user_name }}"
+- name: "For {{ user_name }}: Disable password expiration"
+  command: chage -M -1 "{{ user_name }}"
+  changed_when: false
+- name: Add sudoers settings
+  copy:
+    content: "{{ user_name }} ALL=(ALL:ALL) NOPASSWD:ALL"
+    dest: "/etc/sudoers.d/{{ user_name | regex_replace('\\.', '') }}"
+    mode: 0400
+  when: use_sudo | d(false)
+- name: Delete sudoers settings
+  file:
+    path: "/etc/sudoers.d/{{ user_name | regex_replace('\\.', '') }}"
+    state: absent
+  when: not use_sudo | d(false)
+- name: Unlock account (set expiry to -1)
+  user:
+    name: "{{ user_name }}"
+    expires: -1
+  when: not locked | d(false)
+- name: Lock account (set expiry to 0)
+  user:
+    name: "{{ user_name }}"
+    expires: 0
+  when: locked | d(false)
